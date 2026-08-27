@@ -1,0 +1,222 @@
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  email varchar [unique, not null]
+  hashed_password varchar [not null]
+  role varchar [not null, note: 'admin | dosen | mahasiswa']
+  name varchar
+  nip varchar [note: 'nullable, khusus dosen']
+  nrp varchar [note: 'nullable, khusus mahasiswa']
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table courses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  code varchar [unique, not null]
+  name varchar [not null]
+  description text
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table user_courses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [ref: > users.id, not null]
+  course_id uuid [ref: > courses.id, not null]
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  note: 'anchor scoping: 1 dosen mengajar 1 matkul. Materi/soal/paket ujian nempel di sini.'
+
+  indexes {
+    (user_id, course_id) [unique]
+  }
+}
+
+Table classes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar [not null]
+  semester varchar
+  year int
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table user_course_classes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_course_id uuid [ref: > user_courses.id, not null]
+  class_id uuid [ref: > classes.id, not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    (user_course_id, class_id) [unique]
+  }
+}
+
+Table class_students {
+  id uuid [pk, default: `gen_random_uuid()`]
+  class_id uuid [ref: > classes.id, not null]
+  user_id uuid [ref: > users.id, not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    (class_id, user_id) [unique]
+  }
+}
+
+Table materials {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_course_id uuid [ref: > user_courses.id, not null]
+  name varchar [not null]
+  file_type varchar
+  file_url varchar
+  file_size_kb int
+  status varchar [note: 'pending | processing | done | failed']
+  topic_count int [default: 0]
+  is_deleted boolean [default: false]
+  uploaded_at timestamp [default: `now()`]
+  processed_at timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table topics {
+  id uuid [pk, default: `gen_random_uuid()`]
+  material_id uuid [ref: > materials.id, not null]
+  name varchar [not null]
+  summary text
+  excerpt_count int [default: 0]
+  question_count int [default: 0]
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table topic_excerpts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  topic_id uuid [ref: > topics.id, not null]
+  content text [not null]
+  sequence int
+  used_count int [default: 0]
+  last_used_at timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table questions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_course_id uuid [ref: > user_courses.id, not null]
+  topic_id uuid [ref: > topics.id]
+  question_text text [not null]
+  type varchar [note: 'pilihan_ganda | jawaban_singkat | benar_salah | esai']
+  difficulty varchar
+  bloom_level varchar
+  answer_key text
+  source varchar [note: 'ai | manual']
+  weight decimal [default: 10, note: 'bobot dasar soal, bisa di-override per paket']
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table question_options {
+  id uuid [pk, default: `gen_random_uuid()`]
+  question_id uuid [ref: > questions.id, not null]
+  label varchar
+  content text
+  is_correct boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table exam_packages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_course_id uuid [ref: > user_courses.id, not null]
+  name varchar [not null]
+  description text
+  method varchar [note: 'manual | otomatis']
+  total_questions int [default: 0]
+  total_score decimal [default: 0]
+  last_used_at timestamp
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table exam_package_questions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  exam_package_id uuid [ref: > exam_packages.id, not null]
+  question_id uuid [ref: > questions.id, not null]
+  sequence int
+  weight_override decimal [note: 'nullable, override questions.weight kalau diisi']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    (exam_package_id, question_id) [unique]
+  }
+}
+
+Table exam_assignments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  exam_package_id uuid [ref: > exam_packages.id, not null]
+  class_id uuid [ref: > classes.id, not null]
+  start_at timestamp
+  end_at timestamp
+  duration_minutes int
+  is_deleted boolean [default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table exam_attempts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  exam_assignment_id uuid [ref: > exam_assignments.id, not null]
+  user_id uuid [ref: > users.id, not null]
+  started_at timestamp
+  submitted_at timestamp
+  score decimal
+  status varchar
+  graded_at timestamp
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table exam_answers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  exam_attempt_id uuid [ref: > exam_attempts.id, not null]
+  question_id uuid [ref: > questions.id, not null]
+  answer_text text
+  score decimal
+  feedback text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table generation_logs {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_course_id uuid [ref: > user_courses.id, not null]
+  topic_id uuid [ref: > topics.id]
+  question_type varchar
+  difficulty varchar
+  bloom_level varchar
+  requested_count int [not null]
+  generated_count int [default: 0]
+  additional_instruction text
+  status varchar [note: 'pending | success | failed']
+  created_at timestamp [default: `now()`]
+}
+
+Table activities {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user_id uuid [ref: > users.id, not null]
+  type varchar [note: 'material | topic | question | package | exam']
+  message varchar
+  ref_id uuid
+  created_at timestamp [default: `now()`]
+}
