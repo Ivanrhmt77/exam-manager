@@ -15,7 +15,7 @@ load_dotenv()
 
 
 from app.db.base import Base
-from app.models.user import User
+from app import models
 
 config = context.config
 

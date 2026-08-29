@@ -17,7 +17,7 @@ class Class(Base):
     __tablename__ = "classes"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String)
+    name = Column(String, nullable=False)
     semester = Column(Enum(Semester, native_enum=False, length=20), nullable=False)
     year = Column(Integer, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
