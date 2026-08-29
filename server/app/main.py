@@ -1,15 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from rq.job import Job
 
-from worker.redis_conn import task_queue, redis_conn
-from worker.tasks.dummy import ping
+from app.core.config import settings
+from app.api.v1.router import api_router
 
-app = FastAPI()
+app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -25,17 +24,4 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/test-job")
-def create_test_job():
-    job = task_queue.enqueue(ping)
-    return {"job_id": job.id, "status": job.get_status()}
-
-
-@app.get("/test-job/{job_id}")
-def get_test_job_status(job_id: str):
-    try:
-        job = Job.fetch(job_id, connection=redis_conn)
-    except Exception:
-        raise HTTPException(status_code=404, detail="Job not Found")
-
-    return {"job_id": job.id, "status": job.get_status(), "result": job.result}
+app.include_router(api_router, prefix="/api/v1")
