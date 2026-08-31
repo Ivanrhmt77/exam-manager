@@ -18,6 +18,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String, unique=True, nullable=False, index=True)
     hashed_password = Column(String, nullable=False)
+    must_change_password = Column(Boolean, default=True, nullable=False)
     role = Column(Enum(UserRole, native_enum=False, length=20), nullable=False)
     name = Column(String, nullable=False)
     nip = Column(String, nullable=True)

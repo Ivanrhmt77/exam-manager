@@ -16,7 +16,7 @@ export default function Home() {
     setLoading(true);
     setJob(null);
 
-    const res = await fetch("http://localhost:8000/test-job", {
+    const res = await fetch("http://localhost:8000/api/v1/test-job", {
       method: "POST",
     });
     const data: JobStatus = await res.json();
@@ -27,7 +27,7 @@ export default function Home() {
 
   const pollJobStatus = (jobId: string) => {
     const interval = setInterval(async () => {
-      const res = await fetch(`http://localhost:8000/test-job/${jobId}`);
+      const res = await fetch(`http://localhost:8000/api/v1/test-job/${jobId}`);
       const data: JobStatus = await res.json();
       setJob(data);
 

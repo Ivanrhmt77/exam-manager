@@ -127,6 +127,7 @@ def seed():
                 "hashed_password": hashed,
                 "role": UserRole.ADMIN,
                 "name": "Admin Exam Manager",
+                "must_change_password": False,
             },
         )
 
