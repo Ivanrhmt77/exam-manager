@@ -1,5 +1,7 @@
-from datetime import timedelta, datetime, timezone
 import jwt
+import uuid
+
+from datetime import timedelta, datetime, timezone
 from pwdlib import PasswordHash
 
 from app.core.config import settings
@@ -17,7 +19,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> str:
     expire = datetime.now(timezone.utc) + expires_delta
-    payload = {"sub": str(subject), "exp": expire, "type": token_type}
+    payload = {
+        "sub": str(subject),
+        "exp": expire,
+        "type": token_type,
+        "jti": str(uuid.uuid4()),
+    }
     return jwt.encode(
         payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
     )

@@ -7,6 +7,7 @@ import jwt
 from app.db.base import SessionLocal
 from app.core.security import decode_token
 from app.crud.user import get_user_by_id
+from app.crud.token_blocklist import is_token_revoked
 
 bearer_scheme = HTTPBearer()
 
@@ -34,6 +35,12 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="The provided token is not an access token",
+        )
+
+    if is_token_revoked(payload["jti"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="The session has been logged out",
         )
 
     user = get_user_by_id(db, payload["sub"])
