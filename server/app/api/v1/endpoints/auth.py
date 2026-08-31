@@ -1,6 +1,5 @@
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
@@ -19,7 +18,7 @@ from app.core.security import (
     hash_password,
 )
 from app.schemas.user import UserOut
-from app.api.deps import get_db, get_current_user, get_user_by_id, bearer_scheme
+from app.api.deps import get_db, get_current_user, get_access_token_data, get_user_by_id
 from app.crud.user import get_user_by_email
 from app.crud.token_blocklist import is_token_revoked, revoke_token
 
@@ -37,22 +36,9 @@ def _build_token_response(
     )
 
 
-@router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    user = get_user_by_email(db, payload.email)
-    if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-        )
-
-    return _build_token_response(user)
-
-
-@router.post("/refresh", response_model=TokenResponse)
-def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
+def _decode_refresh_token(token: str) -> dict:
     try:
-        data = decode_token(payload.refresh_token)
+        data = decode_token(token)
     except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
@@ -70,6 +56,25 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
             detail="The session has been logged out",
         )
 
+    return data
+
+
+@router.post("/login", response_model=TokenResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = get_user_by_email(db, payload.email)
+    if not user or not verify_password(payload.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+
+    return _build_token_response(user)
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
+    data = _decode_refresh_token(payload.refresh_token)
+
     user = get_user_by_id(db, data["sub"])
     if user is None:
         raise HTTPException(
@@ -82,27 +87,15 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
 @router.post("/logout", status_code=status.HTTP_200_OK)
 def logout(
     payload: RefreshRequest,
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    access_data: dict = Depends(get_access_token_data),
     current_user: User = Depends(get_current_user),
 ):
-    access_data = decode_token(credentials.credentials)
     revoke_token(
         jti=access_data["jti"],
         expires_at=datetime.fromtimestamp(access_data["exp"], tz=timezone.utc),
     )
 
-    try:
-        refresh_data = decode_token(payload.refresh_token)
-    except jwt.PyJWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
-        )
-
-    if refresh_data.get("type") != "refresh":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="The provided token is not a refresh token",
-        )
+    refresh_data = _decode_refresh_token(payload.refresh_token)
 
     if refresh_data["sub"] != str(current_user.id):
         raise HTTPException(

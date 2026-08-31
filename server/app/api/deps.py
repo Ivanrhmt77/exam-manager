@@ -20,10 +20,9 @@ def get_db() -> Generator:
         db.close()
 
 
-def get_current_user(
+def get_access_token_data(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    db: Session = Depends(get_db),
-):
+) -> dict:
     try:
         payload = decode_token(credentials.credentials)
     except jwt.PyJWTError:
@@ -43,6 +42,13 @@ def get_current_user(
             detail="The session has been logged out",
         )
 
+    return payload
+
+
+def get_current_user(
+    payload: dict = Depends(get_access_token_data),
+    db: Session = Depends(get_db),
+):
     user = get_user_by_id(db, payload["sub"])
     if user is None:
         raise HTTPException(
