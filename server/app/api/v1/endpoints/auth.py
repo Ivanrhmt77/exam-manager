@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.auth import (
     TokenResponse,
     LoginRequest,
@@ -18,7 +18,13 @@ from app.core.security import (
     hash_password,
 )
 from app.schemas.user import UserOut
-from app.api.deps import get_db, get_current_user, get_access_token_data, get_user_by_id
+from app.api.deps import (
+    get_db,
+    get_current_user,
+    get_access_token_data,
+    get_user_by_id,
+    require_role,
+)
 from app.crud.user import get_user_by_email
 from app.crud.token_blocklist import is_token_revoked, revoke_token
 
@@ -129,5 +135,25 @@ def change_password(
 
 
 @router.get("/test-auth", status_code=status.HTTP_200_OK)
-def test_auth(current_user: User = Depends(get_current_user)):
+def test_auth(_: User = Depends(get_current_user)):
     return {"detail": "Authenticated"}
+
+
+@router.get("/test-admin", status_code=status.HTTP_200_OK)
+def test_admin(_: User = Depends(require_role(UserRole.ADMIN))):
+    return {"require_role": "admin"}
+
+
+@router.get("/test-student", status_code=status.HTTP_200_OK)
+def test_student(_: User = Depends(require_role(UserRole.STUDENT))):
+    return {"require_role": "student"}
+
+
+@router.get("/test-lecturer", status_code=status.HTTP_200_OK)
+def test_lecturer(_: User = Depends(require_role(UserRole.LECTURER))):
+    return {"require_role": "lecturer"}
+
+
+@router.get("/test-lecturer-student", status_code=status.HTTP_200_OK)
+def test_lecturer(_: User = Depends(require_role(UserRole.LECTURER, UserRole.STUDENT))):
+    return {"require_role": "lecturer & student"}

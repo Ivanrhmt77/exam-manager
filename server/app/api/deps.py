@@ -8,6 +8,7 @@ from app.db.base import SessionLocal
 from app.core.security import decode_token
 from app.crud.user import get_user_by_id
 from app.crud.token_blocklist import is_token_revoked
+from app.models.user import User, UserRole
 
 bearer_scheme = HTTPBearer()
 
@@ -57,3 +58,15 @@ def get_current_user(
         )
 
     return user
+
+
+def require_role(*allowed_roles: UserRole):
+    def dependency(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You don't have permission to access this resource",
+            )
+        return current_user
+
+    return dependency
