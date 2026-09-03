@@ -5,11 +5,12 @@ from app.schemas.course import CourseOut
 from app.models.course import Course
 
 
-def get_user_by_code(db: Session, code: str) -> Course | None:
+def list_courses(db: Session) -> list[CourseOut]:
     return (
         db.query(Course)
-        .filter(Course.code == code and Course.is_deleted.is_(False))
-        .first()
+        .filter(Course.is_deleted.is_(False))
+        .order_by(Course.created_at.desc())
+        .all()
     )
 
 
@@ -21,10 +22,9 @@ def get_user_by_id(db: Session, course_id: UUID) -> Course | None:
     )
 
 
-def list_courses(db: Session) -> list[CourseOut]:
+def get_user_by_code(db: Session, code: str) -> Course | None:
     return (
         db.query(Course)
-        .filter(Course.is_deleted.is_(False))
-        .order_by(Course.created_at.desc())
-        .all()
+        .filter(Course.code == code and Course.is_deleted.is_(False))
+        .first()
     )

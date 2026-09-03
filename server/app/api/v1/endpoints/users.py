@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status, Depends, HTTPException
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from app.schemas.user import UserOut, UserCreate, UserUpdate
 from app.api.deps import get_db, require_role
@@ -9,7 +10,7 @@ from app.crud import user as user_crud
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-def _require_user(db: Session, user_id: str) -> User:
+def _require_user(db: Session, user_id: UUID) -> User:
     user = user_crud.get_user_by_id(db, user_id)
     if user is None:
         raise HTTPException(
@@ -47,7 +48,7 @@ def list_users(
 
 @router.get("/{user_id}", response_model=UserOut)
 def get_user(
-    user_id: str,
+    user_id: UUID,
     db: Session = Depends(get_db),
     _: User = Depends(require_role(UserRole.ADMIN)),
 ):
@@ -56,7 +57,7 @@ def get_user(
 
 @router.patch("/{user_id}", response_model=UserOut)
 def update_user(
-    user_id: str,
+    user_id: UUID,
     payload: UserUpdate,
     db: Session = Depends(get_db),
     _: User = Depends(require_role(UserRole.ADMIN)),
@@ -67,7 +68,7 @@ def update_user(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
-    user_id: str,
+    user_id: UUID,
     db: Session = Depends(get_db),
     _: User = Depends(require_role(UserRole.ADMIN)),
 ):

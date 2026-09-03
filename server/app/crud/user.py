@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from uuid import UUID
 
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
@@ -8,23 +9,6 @@ from app.core.security import hash_password
 
 class DuplicateEmailError(Exception):
     """Raised when the email is already used by an active (non-deleted) user."""
-
-
-def get_user_by_email(db: Session, email: str) -> User | None:
-    return (
-        db.query(User).filter(User.email == email, User.is_deleted.is_(False)).first()
-    )
-
-
-def get_user_by_id(db: Session, user_id: str) -> User | None:
-    return db.query(User).filter(User.id == user_id, User.is_deleted.is_(False)).first()
-
-
-def list_users(db: Session, role: UserRole | None = None) -> list[User]:
-    query = db.query(User).filter(User.is_deleted.is_(False))
-    if role is not None:
-        query = query.filter(User.role == role)
-    return query.order_by(User.created_at.desc()).all()
 
 
 def create_user(db: Session, payload: UserCreate) -> User:
@@ -47,6 +31,23 @@ def create_user(db: Session, payload: UserCreate) -> User:
         raise DuplicateEmailError(payload.email) from None
     db.refresh(user)
     return user
+
+
+def list_users(db: Session, role: UserRole | None = None) -> list[User]:
+    query = db.query(User).filter(User.is_deleted.is_(False))
+    if role is not None:
+        query = query.filter(User.role == role)
+    return query.order_by(User.created_at.desc()).all()
+
+
+def get_user_by_id(db: Session, user_id: UUID) -> User | None:
+    return db.query(User).filter(User.id == user_id, User.is_deleted.is_(False)).first()
+
+
+def get_user_by_email(db: Session, email: str) -> User | None:
+    return (
+        db.query(User).filter(User.email == email, User.is_deleted.is_(False)).first()
+    )
 
 
 def update_user(db: Session, user: User, payload: UserUpdate) -> User:
