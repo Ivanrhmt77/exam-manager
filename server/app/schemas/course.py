@@ -19,8 +19,8 @@ class CourseOut(BaseModel):
 class CourseCreate(BaseModel):
     code: str
     name: str
-    description: str
-    credits: str
+    description: str | None = None
+    credits: int
     category: CourseCategory
     delivery_type: CourseDeliveryType
 
@@ -29,6 +29,6 @@ class CourseUpdate(BaseModel):
     code: str | None = None
     name: str | None = None
     description: str | None = None
-    credits: str | None = None
+    credits: int | None = None
     category: CourseCategory | None = None
     delivery_type: CourseDeliveryType | None = None

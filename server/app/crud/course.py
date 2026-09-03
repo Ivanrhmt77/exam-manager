@@ -1,8 +1,23 @@
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.schemas.course import CourseOut
+from app.schemas.course import CourseOut, CourseCreate
 from app.models.course import Course
+
+
+def create_course(db: Session, payload: CourseCreate) -> Course:
+    course = Course(
+        code=payload.code,
+        name=payload.name,
+        description=payload.description,
+        credits=payload.credits,
+        category=payload.category,
+        delivery_type=payload.delivery_type,
+    )
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+    return course
 
 
 def list_courses(db: Session) -> list[CourseOut]:
