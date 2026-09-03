@@ -28,7 +28,12 @@ def create_user(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
         )
-    return user_crud.create_user(db, payload)
+    try:
+        return user_crud.create_user(db, payload)
+    except user_crud.DuplicateEmailError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
+        )
 
 
 @router.get("", response_model=list[UserOut])

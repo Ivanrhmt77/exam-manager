@@ -1,7 +1,13 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password
+
+
+class DuplicateEmailError(Exception):
+    """Raised when the email is already used by an active (non-deleted) user."""
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -34,7 +40,11 @@ def create_user(db: Session, payload: UserCreate) -> User:
         must_change_password=True,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise DuplicateEmailError(payload.email) from None
     db.refresh(user)
     return user
 
