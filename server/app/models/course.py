@@ -1,8 +1,23 @@
 import uuid
-from sqlalchemy import Boolean, Column, DateTime, String
+import enum
+from sqlalchemy import Boolean, Column, DateTime, String, Integer, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.db.base import Base
+
+
+class CourseCategory(str, enum.Enum):
+    MW = "MW"
+    MPP = "MPP"
+    MPI = "MPI"
+    MPK = "MPK"
+    MBKM = "MBKM"
+
+
+class CourseDeliveryType(str, enum.Enum):
+    THEORETICAL = "theoretical"
+    PRACTICUM = "practicum"
+    WORKSHOP = "workshop"
 
 
 class Course(Base):
@@ -12,6 +27,13 @@ class Course(Base):
     code = Column(String, unique=True, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    credits = Column(Integer, nullable=False)
+    category = Column(
+        Enum(CourseCategory, native_enum=False, length=10), nullable=False
+    )
+    delivery_type = Column(
+        Enum(CourseDeliveryType, native_enum=False, length=20), nullable=False
+    )
     is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

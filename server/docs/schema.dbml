@@ -16,6 +16,9 @@ Table courses {
   code varchar [unique, not null]
   name varchar [not null]
   description text
+  credits int [not null, note: 'jumlah SKS']
+  category varchar [not null, note: 'MW | MPI | ...']
+  delivery_type varchar [not null, note: 'teori | praktikum | workshop']
   is_deleted boolean [default: false]
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
