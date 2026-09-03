@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Boolean, Column, DateTime, String, Integer, Enum
+from sqlalchemy import Boolean, Column, DateTime, String, Integer, Enum, Index, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -24,7 +24,7 @@ class Course(Base):
     __tablename__ = "courses"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    code = Column(String, unique=True, nullable=False)
+    code = Column(String, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     credits = Column(Integer, nullable=False)
@@ -43,4 +43,13 @@ class Course(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_courses_code_unique_active",
+            "code",
+            unique=True,
+            postgresql_where=text("is_deleted = false"),
+        ),
     )

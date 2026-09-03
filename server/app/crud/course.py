@@ -1,8 +1,13 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from uuid import UUID
 
 from app.schemas.course import CourseOut, CourseCreate, CourseUpdate
 from app.models.course import Course
+
+
+class DuplicateCodeError(Exception):
+    """Raised when the course code is already used by an active (non-deleted) course."""
 
 
 def create_course(db: Session, payload: CourseCreate) -> Course:
@@ -15,7 +20,11 @@ def create_course(db: Session, payload: CourseCreate) -> Course:
         delivery_type=payload.delivery_type,
     )
     db.add(course)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise DuplicateCodeError(payload.code) from None
     db.refresh(course)
     return course
 

@@ -31,7 +31,13 @@ def create_course(
             status_code=status.HTTP_409_CONFLICT,
             detail="Course code already registered",
         )
-    return course_crud.create_course(db, payload)
+    try:
+        return course_crud.create_course(db, payload)
+    except course_crud.DuplicateCodeError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Course code already registered",
+        )
 
 
 @router.get("", response_model=list[CourseOut])
