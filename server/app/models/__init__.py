@@ -2,3 +2,4 @@ from app.models.user import User
 from app.models.course import Course
 from app.models.class_ import Class
 from app.models.user_course import UserCourse
+from app.models.class_student import ClassStudent
