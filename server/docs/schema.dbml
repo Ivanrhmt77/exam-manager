@@ -26,12 +26,12 @@ Table courses {
 
 Table user_courses {
   id uuid [pk, default: `gen_random_uuid()`]
-  user_id uuid [ref: > users.id, not null]
+  user_id uuid [ref: > users.id, not null, note: 'dosen']
   course_id uuid [ref: > courses.id, not null]
   is_deleted boolean [default: false]
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
-  note: 'anchor scoping: 1 dosen mengajar 1 matkul. Materi/soal/paket ujian nempel di sini.'
+  note: 'anchor permanen: dosen ini mengajar matkul ini. Materi/topik/soal nempel di sini, reusable lintas tahun ajaran.'
 
   indexes {
     (user_id, course_id) [unique]
@@ -40,23 +40,22 @@ Table user_courses {
 
 Table classes {
   id uuid [pk, default: `gen_random_uuid()`]
-  name varchar [not null]
-  semester varchar
-  year int
-  is_deleted boolean [default: false]
-  created_at timestamp [default: `now()`]
-  updated_at timestamp [default: `now()`]
-}
-
-Table user_course_classes {
-  id uuid [pk, default: `gen_random_uuid()`]
   user_course_id uuid [ref: > user_courses.id, not null]
-  class_id uuid [ref: > classes.id, not null]
+  class_index int [not null, note: '0=Class A, 1=Class B, dst. Dipakai buat generate name & cari gap kalau ada yang dihapus.']
+  name varchar [not null, note: 'denormalized, contoh: "Pemrograman Web - Class A"']
+  academic_year int [not null]
+  term varchar [not null]
+  status varchar [not null, default: 'active']
+  schedule_day varchar
+  schedule_start_time time
+  schedule_end_time time
+  room varchar
+  is_deleted boolean [default: false]
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
 
   indexes {
-    (user_course_id, class_id) [unique]
+    (user_course_id, class_index) [unique, note: 'partial unique where is_deleted = false, biar gap bisa di-reuse']
   }
 }
 
