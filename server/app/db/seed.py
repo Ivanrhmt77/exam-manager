@@ -9,10 +9,14 @@ Usage:
 import argparse
 import random
 
+from datetime import time
+
 from app.db.base import SessionLocal
 from app.models.user import User, UserRole
 from app.models.course import Course, CourseCategory, CourseDeliveryType
-from app.models.class_ import Class, Semester
+from app.models.user_course import UserCourse
+from app.models.class_ import Class, Term, ClassStatus
+from app.models.class_student import ClassStudent
 from app.core.security import hash_password
 
 random.seed(42)
@@ -149,14 +153,16 @@ COURSES = [
     ),
 ]
 
-CLASSES = [
-    ("SD-3A", Semester.ODD, 2026),
-    ("SD-3B", Semester.ODD, 2026),
-    ("TI-3A", Semester.ODD, 2026),
-    ("SD-4A", Semester.EVEN, 2025),
-    ("TI-4A", Semester.EVEN, 2025),
-    ("SD-3A", Semester.ODD_SHORT, 2025),
+DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
+TIME_SLOTS = [
+    (time(7, 0), time(9, 30)),
+    (time(9, 30), time(12, 0)),
+    (time(13, 0), time(15, 30)),
+    (time(15, 30), time(18, 0)),
 ]
+ROOMS = ["TC-301", "TC-302", "TC-303", "SDT-101", "SDT-102", "Lab Jaringan"]
+
+CLASS_INDEX_LABELS = "ABCDEFGH"
 
 LECTURER_COUNT = 5
 STUDENT_COUNT = 30
@@ -244,18 +250,98 @@ def seed_courses(session) -> list:
     return courses
 
 
-def seed_classes(session) -> list:
-    classes = []
-    for name, semester, year in CLASSES:
-        cls, _ = get_or_create(
+def seed_user_courses(session) -> list:
+    """Assign each course to a lecturer (round-robin)."""
+    lecturers = (
+        session.query(User).filter_by(role=UserRole.LECTURER, is_deleted=False).all()
+    )
+    courses = session.query(Course).filter_by(is_deleted=False).all()
+
+    if not lecturers or not courses:
+        print("UserCourses skipped: seed users & courses first")
+        return []
+
+    user_courses = []
+    for i, course in enumerate(courses):
+        lecturer = lecturers[i % len(lecturers)]
+        uc, _ = get_or_create(
             session,
-            Class,
-            lookup={"name": name, "semester": semester, "year": year},
+            UserCourse,
+            lookup={"user_id": lecturer.id, "course_id": course.id},
         )
-        classes.append(cls)
+        user_courses.append(uc)
+
+    print(f"UserCourses seeded: {len(user_courses)} lecturer-course assignments")
+    return user_courses
+
+
+def seed_classes(session) -> list:
+    """Create classes for each user_course. First 3 get 2 classes (A, B), rest get 1 (A)."""
+    user_courses = session.query(UserCourse).filter_by(is_deleted=False).all()
+
+    if not user_courses:
+        print("Classes skipped: seed user_courses first")
+        return []
+
+    classes = []
+    schedule_slot = 0
+    for i, uc in enumerate(user_courses):
+        num_classes = 2 if i < 3 else 1
+        term = Term.ODD if i % 2 == 0 else Term.EVEN
+        for class_index in range(num_classes):
+            day = DAYS[schedule_slot % len(DAYS)]
+            start_time, end_time = TIME_SLOTS[schedule_slot % len(TIME_SLOTS)]
+            room = ROOMS[schedule_slot % len(ROOMS)]
+            schedule_slot += 1
+
+            cls, _ = get_or_create(
+                session,
+                Class,
+                lookup={"user_course_id": uc.id, "class_index": class_index},
+                defaults={
+                    "name": f"{uc.course.name} - Class {CLASS_INDEX_LABELS[class_index]}",
+                    "academic_year": 2026,
+                    "term": term,
+                    "status": ClassStatus.ACTIVE,
+                    "schedule_day": day,
+                    "schedule_start_time": start_time,
+                    "schedule_end_time": end_time,
+                    "room": room,
+                },
+            )
+            classes.append(cls)
 
     print(f"Classes seeded: {len(classes)} classes")
     return classes
+
+
+def seed_class_students(session) -> list:
+    """Distribute students across classes round-robin."""
+    classes = session.query(Class).filter_by(is_deleted=False).all()
+    students = (
+        session.query(User).filter_by(role=UserRole.STUDENT, is_deleted=False).all()
+    )
+
+    if not classes or not students:
+        print("ClassStudents skipped: seed classes & users first")
+        return []
+
+    enrollments = []
+    per_class = max(1, len(students) // len(classes))
+    idx = 0
+    for cls in classes:
+        for _ in range(per_class):
+            student = students[idx % len(students)]
+            idx += 1
+            cs, _ = get_or_create(
+                session,
+                ClassStudent,
+                lookup={"class_id": cls.id, "user_id": student.id},
+            )
+            enrollments.append(cs)
+
+    print(f"ClassStudents seeded: {len(enrollments)} enrollments")
+    return enrollments
 
 
 SEEDERS = {
@@ -263,7 +349,9 @@ SEEDERS = {
         session, hashed, used_names
     ),
     "courses": lambda session, hashed, used_names: seed_courses(session),
+    "user_courses": lambda session, hashed, used_names: seed_user_courses(session),
     "classes": lambda session, hashed, used_names: seed_classes(session),
+    "class_students": lambda session, hashed, used_names: seed_class_students(session),
 }
 
 
