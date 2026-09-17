@@ -99,14 +99,11 @@ def assign_lecturer(
             detail="user_id must belong to an existing lecturer",
         )
 
-    assignment = user_course_crud.get_assignment(db, course_id, payload.user_id)
-    if assignment is not None:
-        if not assignment.is_deleted:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Lecturer is already assigned to this course",
-            )
-        return user_course_crud.reactivate_user_course(db, assignment)
+    if user_course_crud.get_active_assignment(db, course_id, payload.user_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Lecturer is already assigned to this course",
+        )
 
     try:
         return user_course_crud.create_user_course(db, course_id, payload.user_id)
@@ -138,8 +135,8 @@ def unassign_lecturer(
 ):
     _require_course(db, course_id)
 
-    assignment = user_course_crud.get_assignment(db, course_id, user_id)
-    if assignment is None or assignment.is_deleted:
+    assignment = user_course_crud.get_active_assignment(db, course_id, user_id)
+    if assignment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )

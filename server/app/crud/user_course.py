@@ -21,12 +21,15 @@ def create_user_course(db: Session, course_id: UUID, user_id: UUID):
     return user_course
 
 
-def get_assignment(db: Session, course_id: UUID, user_id: UUID) -> UserCourse | None:
+def get_active_assignment(
+    db: Session, course_id: UUID, user_id: UUID
+) -> UserCourse | None:
     return (
         db.query(UserCourse)
         .filter(
             UserCourse.course_id == course_id,
             UserCourse.user_id == user_id,
+            UserCourse.is_deleted.is_(False),
         )
         .first()
     )
@@ -43,10 +46,3 @@ def list_lecturers_by_course(db: Session, course_id: UUID) -> list[UserCourse]:
 def soft_delete_user_course(db: Session, user_course: UserCourse) -> None:
     user_course.is_deleted = True
     db.commit()
-
-
-def reactivate_user_course(db: Session, user_course: UserCourse) -> UserCourse:
-    user_course.is_deleted = False
-    db.commit()
-    db.refresh(user_course)
-    return user_course

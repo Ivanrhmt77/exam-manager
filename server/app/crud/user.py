@@ -5,6 +5,8 @@ from uuid import UUID
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password
+from app.models.user_course import UserCourse
+from app.crud.user_course import soft_delete_user_course
 
 
 class DuplicateEmailError(Exception):
@@ -63,5 +65,13 @@ def update_user(db: Session, user: User, payload: UserUpdate) -> User:
 
 
 def soft_delete_user(db: Session, user: User) -> None:
+    user_courses = (
+        db.query(UserCourse)
+        .filter(UserCourse.user_id == user.id, UserCourse.is_deleted.is_(False))
+        .all()
+    )
+    for uc in user_courses:
+        soft_delete_user_course(db, uc)
+
     user.is_deleted = True
     db.commit()
