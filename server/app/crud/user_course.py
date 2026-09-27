@@ -35,6 +35,14 @@ def get_active_assignment(
     )
 
 
+def get_user_course_by_id(db: Session, user_course_id: UUID) -> UserCourse | None:
+    return (
+        db.query(UserCourse)
+        .filter(UserCourse.id == user_course_id, UserCourse.is_deleted.is_(False))
+        .first()
+    )
+
+
 def list_lecturers_by_course(db: Session, course_id: UUID) -> list[UserCourse]:
     return (
         db.query(UserCourse)
