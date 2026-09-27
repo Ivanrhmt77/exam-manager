@@ -3,14 +3,12 @@ import enum
 from sqlalchemy import (
     Column,
     DateTime,
-    Boolean,
     Enum,
     String,
     Integer,
     ForeignKey,
     Time,
     Index,
-    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
@@ -50,7 +48,6 @@ class Class(Base):
     schedule_start_time = Column(Time, nullable=True)
     schedule_end_time = Column(Time, nullable=True)
     room = Column(String, nullable=True)
-    is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -65,10 +62,9 @@ class Class(Base):
     
     __table_args__ = (
         Index(
-            "ix_classes_user_course_id_class_index_unique_active",
+            "ix_classes_user_course_id_class_index_unique",
             "user_course_id",
             "class_index",
             unique=True,
-            postgresql_where=text("is_deleted = false"),
         ),
     )

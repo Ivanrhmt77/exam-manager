@@ -253,9 +253,9 @@ def seed_courses(session) -> list:
 def seed_user_courses(session) -> list:
     """Assign each course to a lecturer (round-robin)."""
     lecturers = (
-        session.query(User).filter_by(role=UserRole.LECTURER, is_deleted=False).all()
+        session.query(User).filter_by(role=UserRole.LECTURER).all()
     )
-    courses = session.query(Course).filter_by(is_deleted=False).all()
+    courses = session.query(Course).all()
 
     if not lecturers or not courses:
         print("UserCourses skipped: seed users & courses first")
@@ -277,7 +277,7 @@ def seed_user_courses(session) -> list:
 
 def seed_classes(session) -> list:
     """Create classes for each user_course. First 3 get 2 classes (A, B), rest get 1 (A)."""
-    user_courses = session.query(UserCourse).filter_by(is_deleted=False).all()
+    user_courses = session.query(UserCourse).all()
 
     if not user_courses:
         print("Classes skipped: seed user_courses first")
@@ -317,9 +317,9 @@ def seed_classes(session) -> list:
 
 def seed_class_students(session) -> list:
     """Distribute students across classes round-robin."""
-    classes = session.query(Class).filter_by(is_deleted=False).all()
+    classes = session.query(Class).all()
     students = (
-        session.query(User).filter_by(role=UserRole.STUDENT, is_deleted=False).all()
+        session.query(User).filter_by(role=UserRole.STUDENT).all()
     )
 
     if not classes or not students:

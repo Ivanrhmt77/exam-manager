@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Boolean, Column, DateTime, String, Integer, Enum, Index, text
+from sqlalchemy import Column, DateTime, String, Integer, Enum, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -34,7 +34,6 @@ class Course(Base):
     delivery_type = Column(
         Enum(CourseDeliveryType, native_enum=False, length=20), nullable=False
     )
-    is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -47,9 +46,8 @@ class Course(Base):
 
     __table_args__ = (
         Index(
-            "ix_courses_code_unique_active",
+            "ix_courses_code_unique",
             "code",
             unique=True,
-            postgresql_where=text("is_deleted = false"),
         ),
     )
