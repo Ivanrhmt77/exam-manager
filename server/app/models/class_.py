@@ -33,7 +33,9 @@ class Class(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_course_id = Column(
-        UUID(as_uuid=True), ForeignKey("user_courses.id"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("user_courses.id", ondelete="CASCADE"),
+        nullable=False,
     )
     class_index = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
@@ -59,7 +61,7 @@ class Class(Base):
     )
 
     user_course = relationship("UserCourse")
-    
+
     __table_args__ = (
         Index(
             "ix_classes_user_course_id_class_index_unique",

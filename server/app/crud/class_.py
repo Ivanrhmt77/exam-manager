@@ -1,10 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
-from datetime import time
 
 from app.models.class_ import Class
-from app.models.class_student import ClassStudent
 from app.models.user_course import UserCourse
 from app.models.course import Course, CourseDeliveryType
 from app.schemas.class_ import ClassCreate, ClassUpdate
@@ -13,7 +11,7 @@ CLASS_INDEX_LABELS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
 class DuplicateClassIndexError(Exception):
-    """Raised when class_index is already used by an active class for this user_course_id."""
+    """Raised when class_index is already used by an existing class for this user_course_id."""
 
 
 def _build_class_name(user_course: UserCourse, class_index: int) -> str:
@@ -48,18 +46,14 @@ def create_class(db: Session, payload: ClassCreate, user_course: UserCourse) -> 
 
 
 def list_classes(db: Session, user_course_id: UUID | None = None) -> list[Class]:
-    query = db.query(Class).filter(Class.is_deleted.is_(False))
+    query = db.query(Class)
     if user_course_id is not None:
         query = query.filter(Class.user_course_id == user_course_id)
     return query.order_by(Class.created_at.desc()).all()
 
 
 def get_class_by_id(db: Session, class_id: UUID) -> Class | None:
-    return (
-        db.query(Class)
-        .filter(Class.id == class_id, Class.is_deleted.is_(False))
-        .first()
-    )
+    return db.query(Class).filter(Class.id == class_id).first()
 
 
 def update_class(db: Session, cls: Class, payload: ClassUpdate) -> Class:
@@ -71,7 +65,6 @@ def update_class(db: Session, cls: Class, payload: ClassUpdate) -> Class:
     return cls
 
 
-def soft_delete_class(db: Session, cls: Class) -> None:
-    db.query(ClassStudent).filter(ClassStudent.class_id == cls.id).delete()
-    cls.is_deleted = True
+def delete_class(db: Session, cls: Class) -> None:
+    db.delete(cls)
     db.commit()

@@ -73,4 +73,4 @@ def delete_user(
     _: User = Depends(require_role(UserRole.ADMIN)),
 ):
     user = _require_user(db, user_id)
-    user_crud.soft_delete_user(db, user)
+    user_crud.delete_user(db, user)

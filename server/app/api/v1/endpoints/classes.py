@@ -77,4 +77,4 @@ def delete_class(
     _: User = Depends(require_role(UserRole.ADMIN)),
 ):
     cls = _require_class(db, class_id)
-    class_crud.soft_delete_class(db, cls)
+    class_crud.delete_class(db, cls)

@@ -5,12 +5,10 @@ from uuid import UUID
 from app.models.user import User, UserRole
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password
-from app.models.user_course import UserCourse
-from app.crud.user_course import soft_delete_user_course
 
 
 class DuplicateEmailError(Exception):
-    """Raised when the email is already used by an active (non-deleted) user."""
+    """Raised when the email is already used by an existing user."""
 
 
 def create_user(db: Session, payload: UserCreate) -> User:
@@ -36,20 +34,18 @@ def create_user(db: Session, payload: UserCreate) -> User:
 
 
 def list_users(db: Session, role: UserRole | None = None) -> list[User]:
-    query = db.query(User).filter(User.is_deleted.is_(False))
+    query = db.query(User)
     if role is not None:
         query = query.filter(User.role == role)
     return query.order_by(User.created_at.desc()).all()
 
 
 def get_user_by_id(db: Session, user_id: UUID) -> User | None:
-    return db.query(User).filter(User.id == user_id, User.is_deleted.is_(False)).first()
+    return db.query(User).filter(User.id == user_id).first()
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
-    return (
-        db.query(User).filter(User.email == email, User.is_deleted.is_(False)).first()
-    )
+    return db.query(User).filter(User.email == email).first()
 
 
 def update_user(db: Session, user: User, payload: UserUpdate) -> User:
@@ -64,14 +60,6 @@ def update_user(db: Session, user: User, payload: UserUpdate) -> User:
     return user
 
 
-def soft_delete_user(db: Session, user: User) -> None:
-    user_courses = (
-        db.query(UserCourse)
-        .filter(UserCourse.user_id == user.id, UserCourse.is_deleted.is_(False))
-        .all()
-    )
-    for uc in user_courses:
-        soft_delete_user_course(db, uc)
-
-    user.is_deleted = True
+def delete_user(db: Session, user: User) -> None:
+    db.delete(user)
     db.commit()

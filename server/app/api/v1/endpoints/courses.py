@@ -76,7 +76,7 @@ def delete_course(
     _: User = Depends(require_role(UserRole.ADMIN)),
 ):
     course = _require_course(db, course_id)
-    return course_crud.soft_delete_course(db, course)
+    return course_crud.delete_course(db, course)
 
 
 @router.post(
@@ -99,7 +99,7 @@ def assign_lecturer(
             detail="user_id must belong to an existing lecturer",
         )
 
-    if user_course_crud.get_active_assignment(db, course_id, payload.user_id):
+    if user_course_crud.get_assignment(db, course_id, payload.user_id):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Lecturer is already assigned to this course",
@@ -135,10 +135,10 @@ def unassign_lecturer(
 ):
     _require_course(db, course_id)
 
-    assignment = user_course_crud.get_active_assignment(db, course_id, user_id)
+    assignment = user_course_crud.get_assignment(db, course_id, user_id)
     if assignment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Assignment not found"
         )
 
-    return user_course_crud.soft_delete_user_course(db, assignment)
+    return user_course_crud.delete_user_course(db, assignment)

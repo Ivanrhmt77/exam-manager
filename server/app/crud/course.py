@@ -4,12 +4,10 @@ from uuid import UUID
 
 from app.schemas.course import CourseOut, CourseCreate, CourseUpdate
 from app.models.course import Course
-from app.models.user_course import UserCourse
-from app.crud.user_course import soft_delete_user_course
 
 
 class DuplicateCodeError(Exception):
-    """Raised when the course code is already used by an active (non-deleted) course."""
+    """Raised when the course code is already used by an existing course."""
 
 
 def create_course(db: Session, payload: CourseCreate) -> Course:
@@ -32,28 +30,15 @@ def create_course(db: Session, payload: CourseCreate) -> Course:
 
 
 def list_courses(db: Session) -> list[CourseOut]:
-    return (
-        db.query(Course)
-        .filter(Course.is_deleted.is_(False))
-        .order_by(Course.created_at.desc())
-        .all()
-    )
+    return db.query(Course).order_by(Course.created_at.desc()).all()
 
 
 def get_course_by_id(db: Session, course_id: UUID) -> Course | None:
-    return (
-        db.query(Course)
-        .filter(Course.id == course_id, Course.is_deleted.is_(False))
-        .first()
-    )
+    return db.query(Course).filter(Course.id == course_id).first()
 
 
 def get_course_by_code(db: Session, code: str) -> Course | None:
-    return (
-        db.query(Course)
-        .filter(Course.code == code, Course.is_deleted.is_(False))
-        .first()
-    )
+    return db.query(Course).filter(Course.code == code).first()
 
 
 def update_course(db: Session, course: Course, payload: CourseUpdate) -> Course:
@@ -65,14 +50,6 @@ def update_course(db: Session, course: Course, payload: CourseUpdate) -> Course:
     return course
 
 
-def soft_delete_course(db: Session, course: Course) -> None:
-    user_courses = (
-        db.query(UserCourse)
-        .filter(UserCourse.course_id == course.id, UserCourse.is_deleted.is_(False))
-        .all()
-    )
-    for uc in user_courses:
-        soft_delete_user_course(db, uc)
-
-    course.is_deleted = True
+def delete_course(db: Session, course: Course) -> None:
+    db.delete(course)
     db.commit()
