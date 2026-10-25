@@ -1,12 +1,29 @@
+"use client";
+
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import AppLogo from "@/shared/components/app-logo";
 import Card from "@/shared/components/card";
-import { ShieldCheck, BookOpen, ClipboardCheck } from "lucide-react";
+import { ShieldCheck, BookOpen, ClipboardCheck, Loader2 } from "lucide-react";
+import { useLoginForm } from "@/features/auth";
 
-const login = () => {
+const LoginForm = () => {
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    rememberMe,
+    setRememberMe,
+    fieldErrors,
+    generalError,
+    isSubmitting,
+    handleSubmit,
+  } = useLoginForm();
+
   return (
     <div className="flex min-h-screen w-full">
       <div className="bg-primary-50 border-primary-200 hidden w-[44%] max-w-140 flex-col justify-between border-r p-12 text-neutral-900 lg:flex">
@@ -58,7 +75,16 @@ const login = () => {
             </span>
           </div>
           <div>
-            <form className="flex flex-col gap-5">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              {generalError && (
+                <div
+                  className="rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-600"
+                  role="alert"
+                >
+                  {generalError}
+                </div>
+              )}
+
               <div className="flex flex-col gap-2">
                 <Label htmlFor="email" className="text-xs">
                   Email
@@ -69,8 +95,17 @@ const login = () => {
                   type="email"
                   placeholder="nama@kampus.ac.id"
                   autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isSubmitting}
                   className="h-11 text-sm placeholder:text-neutral-400"
+                  aria-invalid={Boolean(fieldErrors.email)}
                 />
+                {fieldErrors.email && (
+                  <span className="text-xs text-red-600">
+                    {fieldErrors.email}
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -83,19 +118,33 @@ const login = () => {
                   type="password"
                   placeholder="Masukkan password"
                   autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isSubmitting}
                   className="h-11 text-sm placeholder:text-neutral-400"
+                  aria-invalid={Boolean(fieldErrors.password)}
                 />
+                {fieldErrors.password && (
+                  <span className="text-xs text-red-600">
+                    {fieldErrors.password}
+                  </span>
+                )}
               </div>
 
               <div className="flex justify-between">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="remember-me"
-                    className="data-checked:bg-primary-500 data-checked:border-primary-500 cursor-pointer"
+                    disabled
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(Boolean(checked))}
+                    title="Fitur ini belum didukung oleh backend"
+                    className="data-checked:bg-primary-500 data-checked:border-primary-500 cursor-not-allowed opacity-50"
                   />
                   <Label
                     htmlFor="remember-me"
-                    className="cursor-pointer text-sm font-normal text-neutral-600"
+                    className="cursor-not-allowed text-sm font-normal text-neutral-400"
+                    title="Fitur ini belum didukung oleh backend"
                   >
                     Ingat saya
                   </Label>
@@ -107,9 +156,17 @@ const login = () => {
 
               <Button
                 type="submit"
-                className="bg-primary-500 hover:bg-primary-700 w-full cursor-pointer p-2 text-sm font-medium"
+                disabled={isSubmitting}
+                className="bg-primary-500 hover:bg-primary-700 w-full cursor-pointer p-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Masuk
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Memproses...
+                  </span>
+                ) : (
+                  "Masuk"
+                )}
               </Button>
             </form>
           </div>
@@ -119,4 +176,18 @@ const login = () => {
   );
 };
 
-export default login;
+const LoginPage = () => {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
+  );
+};
+
+export default LoginPage;

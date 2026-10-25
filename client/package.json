@@ -6,10 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "rm -rf /tmp/client-test-cjs && tsc --project tsconfig.json --noEmit false --module commonjs --moduleResolution node --outDir /tmp/client-test-cjs && NODE_PATH=./node_modules node --test /tmp/client-test-cjs/**/*.test.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
+    "axios": "^1.20.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.0",
     "lucide-react": "^1.61.0",
